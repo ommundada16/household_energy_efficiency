@@ -72,9 +72,18 @@ jupyter notebook Household_Energy_Efficiency_Analysis.ipynb
 - **Not run end-to-end on this machine**: this notebook's logic was written and
   reviewed carefully (correct column references, no target leakage, valid
   scikit-learn API usage) but wasn't executed here due to a broken local Python
-  installation (missing standard-library files unrelated to this project). It
-  should run cleanly in Colab or any normal Python environment with the
-  packages in `requirements.txt` — if you hit an error, it's worth an issue.
+  installation (missing standard-library files unrelated to this project). One
+  real bug (see below) was only caught after a manual run in Colab surfaced it —
+  so treat this repo's version as reviewed-and-patched, not proven bulletproof,
+  and open an issue if another cell errors out.
+- **Package versions are pinned defensively**: `pandas<3.0` and `seaborn<0.14`
+  in `requirements.txt` avoid two forward-compatibility breaks — pandas 3.x's
+  copy-on-write makes `df[col].fillna(..., inplace=True)` a silent no-op instead
+  of actually filling values, and newer Seaborn turns `palette=` without a `hue`
+  argument (used in several plotting cells here) from a warning into a hard
+  error. Neither affects this specific dataset today (it has zero missing
+  values), but both would bite on a slightly different dataset or a future
+  package upgrade.
 
 ## Background
 
@@ -82,9 +91,16 @@ This started from a version of the notebook where Part 2 onward (Regression,
 Classification, Clustering) referenced columns from a completely different
 dataset (`Global_active_power(kW)`, `Household_ID`, `Efficiency_Label`, etc.)
 that don't exist in this project's actual data — those sections would have
-thrown `KeyError` immediately if run. Part 1 (preprocessing) was solid and
-unchanged; Parts 2–4 here are a rewrite that actually runs against the real
-`household_energy_unit_data.csv` columns.
+thrown `KeyError` immediately if run. Parts 2–4 here are a rewrite that actually
+runs against the real `household_energy_unit_data.csv` columns.
+
+Part 1 (preprocessing) kept its original logic, but wasn't bug-free either: its
+"feature vs target" scatter-grid cell hardcoded a 3×3 subplot layout (9 slots)
+while trying to plot 11 non-target numeric columns, which throws
+`ValueError: num must be an integer with 1 <= num <= 9`. That surfaced when
+[@ommundada16](https://github.com/ommundada16) ran the original in Colab — the
+grid here now sizes itself to however many columns there are instead of a
+hardcoded count.
 
 ## License
 

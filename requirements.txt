@@ -1,6 +1,6 @@
-pandas
+pandas<3.0
 numpy
 matplotlib
-seaborn
+seaborn<0.14
 scikit-learn
 jupyter
