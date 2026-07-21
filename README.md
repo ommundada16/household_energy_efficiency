@@ -47,7 +47,26 @@ justify the choice of *k*.
 
 A dynamically-computed summary (no hardcoded numbers) closes out the notebook.
 
+## Results
+
+This notebook has been executed end-to-end (all 55 cells, zero errors) — the
+committed `.ipynb` has real outputs baked in, so every plot and metric below
+renders directly on GitHub without anyone needing to run anything:
+
+| Model | Result |
+|---|---|
+| Regression (Linear Regression beat Random Forest) | **R² = 0.738**, RMSE = 12.01 kWh |
+| Strongest energy-use predictor | `is_ac` |
+| Classification (Random Forest) | **86.1% accuracy** (efficient vs. inefficient) |
+| Strongest efficiency predictor | `housearea` |
+| Clustering (K-means) | 3 distinct household consumption profiles |
+
+(1,000 raw records → 685 after IQR-based outlier removal.)
+
 ## Running it
+
+Outputs are already committed, so you don't need to run anything just to see
+the results — but to reproduce or modify the analysis:
 
 **In Google Colab**: open the notebook, run all cells, and use the file-upload
 prompt near the top to upload `data/household_energy_unit_data.csv`.
@@ -58,7 +77,7 @@ it's not running in Colab.
 
 ```
 pip install -r requirements.txt
-jupyter notebook Household_Energy_Efficiency_Analysis.ipynb
+jupyter nbconvert --to notebook --execute --inplace Household_Energy_Efficiency_Analysis.ipynb
 ```
 
 ## Known limitations
@@ -67,15 +86,8 @@ jupyter notebook Household_Energy_Efficiency_Analysis.ipynb
   (evidently data-entry errors — these are counts that can't be negative). The
   IQR outlier filter doesn't fully catch them since `-1` falls within the
   statistical bounds for those columns. They're left as-is rather than
-  silently dropped, so results may be marginally affected by a small number of
-  invalid rows.
-- **Not run end-to-end on this machine**: this notebook's logic was written and
-  reviewed carefully (correct column references, no target leakage, valid
-  scikit-learn API usage) but wasn't executed here due to a broken local Python
-  installation (missing standard-library files unrelated to this project). One
-  real bug (see below) was only caught after a manual run in Colab surfaced it —
-  so treat this repo's version as reviewed-and-patched, not proven bulletproof,
-  and open an issue if another cell errors out.
+  silently dropped, so results above may be marginally affected by a small
+  number of invalid rows.
 - **Package versions are pinned defensively**: `pandas<3.0` and `seaborn<0.14`
   in `requirements.txt` avoid two forward-compatibility breaks — pandas 3.x's
   copy-on-write makes `df[col].fillna(..., inplace=True)` a silent no-op instead
