@@ -1,119 +1,84 @@
-# Household Energy Efficiency Analysis
+# Household Energy Analysis
 
-A machine learning mini-project analyzing household electricity consumption:
-predicting total energy usage, classifying households as efficient/inefficient,
-and segmenting households into consumption profiles — all from basic structural
-attributes (room count, occupants, house area, appliances, location).
+A machine learning methods demonstration covering data preparation, consumption prediction, relative-intensity classification, and exploratory household clustering.
 
 ## Dataset
 
-[`data/household_energy_unit_data.csv`](data/household_energy_unit_data.csv) — 1,000
-households, 9 columns:
+The bundled [CSV](data/household_energy_unit_data.csv) contains 1,000 rows with household counts, area, appliance/location flags, and a consumption target (`units`). Its original source, real-versus-synthetic status, measurement period, and energy/area units are **unverified**. Results use source units and demonstrate methods rather than validated real-world efficiency findings. See [dataset provenance](data/PROVENANCE.md).
 
-| Column | Meaning |
-|---|---|
-| `num_rooms` | Number of rooms in the household |
-| `num_people` | Number of occupants |
-| `housearea` | House area (sq. m) |
-| `is_ac` | Has air conditioning (0/1) |
-| `is_tv` | Has a television (0/1) |
-| `is_flat` | Is an apartment/flat vs standalone house (0/1) |
-| `num_children` | Number of children in the household |
-| `is_urban` | Located in an urban area (0/1) |
-| `units` | Total energy consumed (kWh) — the prediction target |
+## Data preparation
 
-## What the notebook does
+- Dropped 9 rows with negative counts and 13 additional rows with zero occupants, leaving **978 valid rows**.
+- Checked missing/nonfinite values, fractional counts, nonpositive area, negative consumption, binary flags, and duplicates. No missing values or duplicates were found.
+- Calculated per-person and per-area consumption after validation. No count imputation or IQR filtering was applied; plausible extremes were retained.
+- Preserved the raw CSV and saved an [excluded-row audit](reports/excluded_rows.csv).
 
-[`Household_Energy_Efficiency_Analysis.ipynb`](Household_Energy_Efficiency_Analysis.ipynb)
+## Methods and results
 
-**Part 1 — Preprocessing & EDA**: missing-value checks, feature engineering
-(`Energy_per_Person`, `Energy_per_SqM`), distribution plots, correlation heatmap,
-and IQR-based outlier removal (1,000 → 685 rows).
+The [executed notebook](Household_Energy_Efficiency_Analysis.ipynb) uses a seeded 80/20 split: **782 training / 196 test rows**. Models use eight raw household attributes; consumption-derived ratios are excluded from predictive features.
 
-**Part 2 — Regression**: predicts total energy consumption (`Total_Energy_kWh`)
-from household attributes, comparing Linear Regression against a Random Forest
-Regressor and reporting R² / RMSE and feature importance for whichever performs
-better.
+### Regression
 
-**Part 3 — Classification**: since the raw data has no efficiency label, one is
-derived — a household is "Efficient" if its energy use per square meter is at or
-below the dataset median. A Random Forest Classifier then predicts that label
-from the same structural attributes (not from energy data itself, to avoid
-leaking the answer).
+Five-fold cross-validation on training data selected linear regression (mean CV RMSE 13.40 versus 13.91 for random forest). Test results are reported for both models without changing the selection.
 
-**Part 4 — Clustering**: K-means segments households into consumption profiles
-using per-person and per-area energy use plus house size, with an elbow plot to
-justify the choice of *k*.
+| Model | Test R² | Test RMSE | Test MAE |
+| --- | ---: | ---: | ---: |
+| Training-mean baseline | -0.011 | 26.50 | 20.71 |
+| Linear regression (selected) | 0.734 | 13.58 | 10.27 |
+| Random forest | 0.756 | 13.03 | 10.24 |
 
-A dynamically-computed summary (no hardcoded numbers) closes out the notebook.
+### Classification
 
-## Results
+Class 1 indicates consumption/area at or below the **training-only median** (0.158948); class 0 indicates higher intensity. This is a relative-intensity proxy, not an audited efficiency rating.
 
-This notebook has been executed end-to-end (all 55 cells, zero errors) — the
-committed `.ipynb` has real outputs baked in, so every plot and metric below
-renders directly on GitHub without anyone needing to run anything:
+| Classifier | Test accuracy |
+| --- | ---: |
+| Training-majority baseline | 47.45% |
+| Random forest | 86.22% |
 
-| Model | Result |
-|---|---|
-| Regression (Linear Regression beat Random Forest) | **R² = 0.738**, RMSE = 12.01 kWh |
-| Strongest energy-use predictor | `is_ac` |
-| Classification (Random Forest) | **86.1% accuracy** (efficient vs. inefficient) |
-| Strongest efficiency predictor | `housearea` |
-| Clustering (K-means) | 3 distinct household consumption profiles |
+The lift is **38.78 percentage points**. Training classes tie, so the baseline chooses class 0, which accounts for 47.45% of test rows.
 
-(1,000 raw records → 685 after IQR-based outlier removal.)
+| Forest class / average | Precision | Recall | F1 | Support |
+| --- | ---: | ---: | ---: | ---: |
+| Higher intensity (0) | 0.851 | 0.860 | 0.856 | 93 |
+| Lower intensity (1) | 0.873 | 0.864 | 0.868 | 103 |
+| Macro average | 0.862 | 0.862 | 0.862 | 196 |
+| Weighted average | 0.862 | 0.862 | 0.862 | 196 |
 
-## Running it
+Confusion matrix (rows = actual, columns = predicted):
 
-Outputs are already committed, so you don't need to run anything just to see
-the results — but to reproduce or modify the analysis:
+| Actual / predicted | Higher intensity (0) | Lower intensity (1) |
+| --- | ---: | ---: |
+| Higher intensity (0) | 80 | 13 |
+| Lower intensity (1) | 14 | 89 |
 
-**In Google Colab**: open the notebook, run all cells, and use the file-upload
-prompt near the top to upload `data/household_energy_unit_data.csv`.
+### Clustering
 
-**Locally / Jupyter**: clone this repo and run from its root — the notebook
-automatically falls back to reading `data/household_energy_unit_data.csv` when
-it's not running in Colab.
+K-means uses standardized consumption ratios and household size attributes. The notebook compares inertia and silhouette for k=2..6 and illustrates k=3 profiles; these are exploratory groups, not externally validated household types.
 
-```
+## Error Analysis & Learnings
+
+The notebook includes residual plots, largest misses, subgroup MAE/bias with sample counts, misclassified rows, and repeated permutation importance. [Held-out errors](reports/held_out_errors.csv) reference original CSV lines.
+
+1. The largest regression miss is CSV line 898: **+43.43** actual minus predicted, indicating underprediction. The AC=1 subgroup has MAE **12.84** across 76 test rows. Weather, appliance-use, and measurement-duration data could help investigate these errors; their causes cannot be established here.
+2. The classifier makes **27 errors out of 196**, with median intensity distance **0.00895** from the threshold among mistakes. Correct/wrong distance comparisons are reported in the notebook. Measured efficiency labels would be needed to validate the proxy.
+3. Permutation importance ranks **num_children** highest for regression and **housearea** for classification. These are predictive associations; area importance also reflects its role in label construction.
+
+## Run
+
+From the repository root:
+
+```bash
 pip install -r requirements.txt
 jupyter nbconvert --to notebook --execute --inplace Household_Energy_Efficiency_Analysis.ipynb
 ```
 
-## Known limitations
+In Colab, run the notebook and upload the bundled CSV when prompted. All 12 code cells have executed successfully with embedded plots and validation assertions. [Metrics and runtime versions](reports/metrics.json), exclusions, and held-out errors are regenerated under `reports/`. [requirements-tested.txt](requirements-tested.txt) records direct dependencies used for the committed run.
 
-- **Data quality**: a handful of rows have `-1` in `num_rooms` or `num_people`
-  (evidently data-entry errors — these are counts that can't be negative). The
-  IQR outlier filter doesn't fully catch them since `-1` falls within the
-  statistical bounds for those columns. They're left as-is rather than
-  silently dropped, so results above may be marginally affected by a small
-  number of invalid rows.
-- **Package versions are pinned defensively**: `pandas<3.0` and `seaborn<0.14`
-  in `requirements.txt` avoid two forward-compatibility breaks — pandas 3.x's
-  copy-on-write makes `df[col].fillna(..., inplace=True)` a silent no-op instead
-  of actually filling values, and newer Seaborn turns `palette=` without a `hue`
-  argument (used in several plotting cells here) from a warning into a hard
-  error. Neither affects this specific dataset today (it has zero missing
-  values), but both would bite on a slightly different dataset or a future
-  package upgrade.
+## Limitations
 
-## Background
-
-This started from a version of the notebook where Part 2 onward (Regression,
-Classification, Clustering) referenced columns from a completely different
-dataset (`Global_active_power(kW)`, `Household_ID`, `Efficiency_Label`, etc.)
-that don't exist in this project's actual data — those sections would have
-thrown `KeyError` immediately if run. Parts 2–4 here are a rewrite that actually
-runs against the real `household_energy_unit_data.csv` columns.
-
-Part 1 (preprocessing) kept its original logic, but wasn't bug-free either: its
-"feature vs target" scatter-grid cell hardcoded a 3×3 subplot layout (9 slots)
-while trying to plot 11 non-target numeric columns, which throws
-`ValueError: num must be an integer with 1 <= num <= 9`. That surfaced when
-[@ommundada16](https://github.com/ommundada16) ran the original in Colab — the
-grid here now sizes itself to however many columns there are instead of a
-hardcoded count.
+Dataset provenance and units are unverified. A single random split assumes independent records and does not establish performance across locations or periods. Relative intensity does not adjust for climate, comfort, fuel mix, or occupancy duration. Error analysis and importance are post-hoc; further tuning requires fresh evaluation data.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[MIT](LICENSE) for repository code. Original dataset licensing provenance remains unverified.
