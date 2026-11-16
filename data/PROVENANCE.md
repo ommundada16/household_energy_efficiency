@@ -1,11 +1,9 @@
 # Dataset provenance
 
-**Status: unverified.** The repository bundles `household_energy_unit_data.csv` without an original publisher, source URL, collection protocol, or generator. Its existing documentation and history do not establish whether these are real households or synthetic examples. A public GitHub copy is a distribution location, not proof of origin.
+**Status: unverified.** The bundled `household_energy_unit_data.csv` contains 1,000 records and nine numeric fields, but no original publisher, source citation, collection protocol, or generator is documented. Its real-versus-synthetic status is unknown.
 
-Frame this project as a **methods demonstration on data of unverified origin**. Do not assert real-world findings or synthetic origin without evidence. Synthetic-looking distributions alone cannot establish provenance.
+Field names suggest household counts, area, binary flags, and consumption. Energy/area units, measurement period, geography, collection date, sampling method, and original dataset permissions are undocumented. The repository's MIT license covers repository code; it does not independently establish the dataset's original licensing provenance.
 
-The CSV contains 1,000 rows and nine numeric fields: household counts, area, binary flags, and `units`. Area units, energy units, measurement period, geography, collection date, sampling method, and original data permissions are undocumented. Earlier documentation called the units square meters and kWh; those interpretations are unsubstantiated. The repository's MIT license does not independently establish the original dataset's licensing provenance.
+This analysis is a methods demonstration on data of unverified origin. Results do not establish real-world household efficiency or causal effects.
 
-The raw CSV remains unchanged. Explicit validity rules run before ratios or splitting; the notebook writes exclusions with CSV line references to `reports/excluded_rows.csv`. No count imputation or IQR outlier deletion is used. Exact accounting and runtime versions are in `reports/metrics.json`.
-
-To resolve this status, obtain the original source citation and URL, license or permission statement, data dictionary with units and period, and a collection description or synthetic generator with seed. Update this document and rerun. If synthetic origin is verified, label it synthetic and discuss the generating relationships rather than population insights.
+The raw CSV is unchanged. Validity rules run before ratios or splitting, and exclusions retain CSV line references in `reports/excluded_rows.csv`. No count imputation or IQR deletion is applied. Row accounting and runtime versions are recorded in `reports/metrics.json`.
